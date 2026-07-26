@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    @apply bg-surface text-slate-800;
+    overflow-x: hidden; /* jaga-jaga supaya tidak ada scroll horizontal tak sengaja di HP */
+  }
+}
+
+@layer components {
+  /* Input dasar yang dipakai di seluruh halaman (login, tambah tiket, dll) */
+  .form-input {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800
+      placeholder:text-slate-400 focus:border-primary-600 focus:outline-none focus:ring-2
+      focus:ring-primary-100 transition;
+  }
+
+  .form-label {
+    @apply mb-2 block text-sm font-medium text-slate-700;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary-700 px-5 py-3
+      text-sm font-semibold text-white shadow-sm transition hover:bg-primary-800
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-outline-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-red-500 px-5 py-3
+      text-sm font-semibold text-red-500 transition hover:bg-red-50;
+  }
+
+  .btn-outline-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-primary-700 px-5 py-3
+      text-sm font-semibold text-primary-700 transition hover:bg-primary-50;
+  }
+}
+
+.hide-scrollbar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge lama */
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge baru */
+  }
+
+@media print {
+    @page {
+        size: 80mm auto;
+        margin: 0;
+    }
+
+    body * {
+        visibility: hidden;
+    }
+    #receipt-print-area,
+    #receipt-print-area * {
+        visibility: visible;
+    }
+    #receipt-print-area {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+    }
+}

@@ -1,0 +1,295 @@
+###
+#Login sebagai owner
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "queeny",
+  "password": "lumbalumba"
+}
+
+###
+#Halaman Awal
+GET http://localhost:3000
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
+
+###
+#Cari petugas 1
+GET http://localhost:3000/api/petugas
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
+
+###
+#Tambah petugas 1
+POST http://localhost:3000/api/petugas
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
+
+{
+  "nama_petugas": "Artheria",
+  "username_petugas":"artheria",
+  "password_petugas": "lumbalumba",
+  "email_petugas":"artheria@gmail.com",
+  "no_hp_petugas": "081212341234",
+  "status_petugas": "Resign"
+}
+
+###
+#Tambah petugas 2
+POST http://localhost:3000/api/petugas
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
+
+{
+  "nama_petugas": "pluffy",
+  "username_petugas":"pluffy",
+  "password_petugas": "kurakura",
+  "email_petugas":"pluffy@gmail.com",
+  "no_hp_petugas": "082212341234",
+  "status_petugas": "Aktif"
+}
+
+###
+#Mencari petugas by id
+GET http://localhost:3000/api/petugas/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
+
+###
+#Update Petugas
+PUT http://localhost:3000/api/petugas/2
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
+
+{
+  "nama_petugas": "zrielavish",
+  "username_petugas":"noir",
+  "password_petugas": "noir1234",
+  "email_petugas":"noir@gmail.com",
+  "no_hp_petugas": "081222341234",
+  "status_petugas": "Aktif"
+}
+
+###
+#Menampilkan data owner
+GET http://localhost:3000/api/owner
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
+
+###
+#Tambah owner 1
+POST http://localhost:3000/api/owner
+Content-Type: application/json
+
+{
+  "nama_owner": "queen",
+  "username_owner":"queeny",
+  "password_owner": "lumbalumba",
+  "email_owner":"queeny@gmail.com",
+  "no_hp_owner": "081212341234"
+}
+
+###
+#Tambah owner 2
+POST http://localhost:3000/api/owner
+Content-Type: application/json
+
+{
+  "nama_owner": "Zrielavish",
+  "username_owner":"zrielavish",
+  "password_owner": "kurakura",
+  "email_owner":"zrielavish@gmail.com",
+  "no_hp_owner": "082212341234"
+}
+
+###
+#Mencari owner by id
+GET http://localhost:3000/api/owner/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
+
+###
+#Update owner
+PUT http://localhost:3000/api/owner/1
+Content-Type: application/json
+
+{
+  "nama_owner": "Artheriou",
+  "username_owner":"artheria",
+  "password_owner": "lumbalumba",
+  "email_owner":"artheria@gmail.com",
+  "no_hp_owner": "081212341234"
+}
+
+###
+#Menampilkan data tiket
+GET http://localhost:3000/api/tiket
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ4NjcwNzgsImV4cCI6MTc4NDg5NTg3OH0._uxegm_INlQaK-GGQCCypSLXuy-Y_K_q1ElvH9Zo9vI
+
+###
+#Menambahkan tiket
+POST http://localhost:3000/api/tiket
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ4NjcwNzgsImV4cCI6MTc4NDg5NTg3OH0._uxegm_INlQaK-GGQCCypSLXuy-Y_K_q1ElvH9Zo9vI
+
+{
+  "nama_tiket":"Tiket Special Nataru",
+  "harga_tiket":10000,
+  "deskripsi_tiket": "Tiket special untuk natal dan tahun baru",
+  "status_tiket": "Tidak Tersedia"
+}
+
+###
+#Mencari tiket by id
+GET http://localhost:3000/api/tiket/3
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ4NjcwNzgsImV4cCI6MTc4NDg5NTg3OH0._uxegm_INlQaK-GGQCCypSLXuy-Y_K_q1ElvH9Zo9vI
+
+###
+#Update tiket
+PUT http://localhost:3000/api/tiket/3
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ4NjcwNzgsImV4cCI6MTc4NDg5NTg3OH0._uxegm_INlQaK-GGQCCypSLXuy-Y_K_q1ElvH9Zo9vI
+
+{
+  "nama_tiket":"Tiket Special Hari Senin",
+  "harga_tiket":10000,
+  "deskripsi_tiket": "Today Is Monday",
+  "status_tiket": "Tersedia"
+}
+
+###
+#Menampilkan data transaksi
+GET http://localhost:3000/api/transaksi/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
+
+###
+#Menambahkan transaksi
+POST http://localhost:3000/api/transaksi
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
+
+{
+  "id_petugas": 1,
+  "items": [
+    { "id_tiket": 1, "qty": 1 },
+    { "id_tiket": 3, "qty": 1 }
+  ]
+}
+
+###
+#Ambil detail transaksi + rinciannya
+GET http://localhost:3000/api/transaksi/3
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
+###
+#Konfirmasi pembayaran (ubah status jadi Selesai)
+PUT http://localhost:3000/api/transaksi/3/status
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
+
+{
+  "status_transaksi": "Dibatalkan"
+}
+###
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "queeny",
+  "password": "lumbalumba"
+}
+
+###
+#Ambil semua transaksi (pakai token)
+GET http://localhost:3000/api/transaksi/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
+###
+#Buat akun owner baru
+POST http://localhost:3000/api/owner
+Content-Type: application/json
+
+{
+  "nama_owner": "queeny",
+  "username_owner": "queeny",
+  "password_owner": "kurakura",
+  "email_owner": "queeny@gmail.com",
+  "no_hp_owner": "081234567890"
+}
+###
+
+###
+#Laporan harian
+GET http://localhost:3000/api/laporan?period=daily
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
+
+
+###
+#Laporan mingguan
+GET http://localhost:3000/api/laporan?period=weekly
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
+
+
+###
+#Laporan bulanan
+GET http://localhost:3000/api/laporan?period=monthly
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
+
+
+###
+#Laporan tahunan
+GET http://localhost:3000/api/laporan?period=yearly
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
+
+###
+# update data petugas lama
+PUT http://localhost:3000/api/petugas/3
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
+Content-Type: application/json
+
+{
+  "nama_petugas": "zrielavish",
+  "username_petugas": "noir",
+  "password_petugas": "noir123",
+  "email_petugas": "noir@gmail.com",
+  "no_hp_petugas": "081222341234",
+  "status_petugas": "Aktif"
+}
+###
+#Tambah petugas Pintu Masuk
+POST http://localhost:3000/api/petugas-pintu-masuk
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
+
+{
+  "nama_pGerbang": "Brick",
+  "username_pGerbang":"Bricked",
+  "password_pGerbang": "kurakura",
+  "email_pGerbang":"bricked@gmail.com",
+  "no_hp_pGerbang": "082212341234",
+  "status_pGerbang": "Aktif"
+}
+
+###
+#Mencari petugas Pintu Masuk by id
+GET http://localhost:3000/api/petugas-pintu-masuk
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
+
+###
+#Update Petugas
+PUT http://localhost:3000/api/petugas-pintu-masuk/1
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
+
+{
+  "nama_pGerbang": "Bloom",
+  "username_pGerbang":"bloom",
+  "password_pGerbang": "kurakura",
+  "email_pGerbang":"bloom@gmail.com",
+  "no_hp_pGerbang": "081222341234",
+  "status_pGerbang": "Aktif"
+}
+
+###
+#Scan Qr
+POST http://localhost:3000/api/qr/validasi
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ4NjIwNzEsImV4cCI6MTc4NDg5MDg3MX0._n4TedSOb8mF6LU3nrZ9U8alSjNxZ73uSmRngmQQLgI
+Content-Type: application/json
+
+{
+  "kode_qr": "22093aa4-4818-4ad7-b479-4c6ce62f0298"
+}
