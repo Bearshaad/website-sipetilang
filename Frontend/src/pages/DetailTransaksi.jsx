@@ -139,7 +139,7 @@ async function handleKonfirmasi() {
             </div>
 
             <div className="mt-4">
-              <div className="grid grid-cols-[1fr,44px,90px] gap-2 border-b border-slate-100 pb-3 text-sm text-slate-400 sm:grid-cols-[1fr,80px,120px] sm:gap-4">
+              <div className="grid grid-cols-[1fr_44px_90px] gap-2 border-b border-slate-100 pb-3 text-sm text-slate-400 sm:grid-cols-[1fr_80px_120px] sm:gap-4">
                 <span>Nama Tiket</span>
                 <span className="text-center">QTY</span>
                 <span className="text-right">Total</span>
@@ -148,7 +148,7 @@ async function handleKonfirmasi() {
               {cart.map((item) => (
                 <div
                   key={item.ticket.id}
-                  className="grid grid-cols-[1fr,44px,90px] gap-2 border-b border-slate-50 py-3 sm:grid-cols-[1fr,80px,120px] sm:gap-4"
+                  className="grid grid-cols-[1fr_44px_90px] gap-2 border-b border-slate-50 py-3 sm:grid-cols-[1fr_80px_120px] sm:gap-4"
                 >
                   <span className="truncate font-semibold text-slate-900">{item.ticket.nama}</span>
                   <span className="text-center text-slate-500">x{item.jumlah}</span>
