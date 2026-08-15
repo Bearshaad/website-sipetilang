@@ -28,8 +28,8 @@ export async function createTiket(req, res) {
     try {
         const { nama_tiket, harga_tiket, deskripsi_tiket, status_tiket } = req.body;
 
-        if (!nama_tiket || !harga_tiket) {
-            return res.status(400).json({ message: 'Nama tiket dan harga tiket wajib diisi' });
+        if (!nama_tiket || harga_tiket === undefined || harga_tiket === null || harga_tiket === '' || Number(harga_tiket) < 0) {
+            return res.status(400).json({ message: 'Nama tiket wajib diisi, dan harga tiket tidak boleh negatif' });
         }
 
         const tiketId = await tiketModel.create({ nama_tiket, harga_tiket, deskripsi_tiket, status_tiket });
@@ -47,8 +47,8 @@ export async function updateTiket(req, res) {
         const { id } = req.params;
         const { nama_tiket, harga_tiket, deskripsi_tiket, status_tiket } = req.body;
 
-        if (!nama_tiket || !harga_tiket) {
-            return res.status(400).json({ message: 'Nama tiket dan harga tiket wajib diisi' });
+        if (!nama_tiket || harga_tiket === undefined || harga_tiket === null || harga_tiket === '' || Number(harga_tiket) < 0) {
+            return res.status(400).json({ message: 'Nama tiket wajib diisi, dan harga tiket tidak boleh negatif' });
         }
 
         const affectedRows = await tiketModel.update(id, { nama_tiket, harga_tiket, deskripsi_tiket, status_tiket });

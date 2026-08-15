@@ -30,8 +30,10 @@ export default function TicketFormPopup({ isOpen, mode, ticket, onClose, onSubmi
     e.preventDefault()
     setError('')
 
-    if (!form.nama.trim() || !form.harga) {
-      setError('Nama tiket dan harga tiket wajib diisi')
+    const hargaNumber = Number(form.harga)
+
+    if (!form.nama.trim() || form.harga === '' || isNaN(hargaNumber) || hargaNumber < 0) {
+      setError('Nama tiket wajib diisi, dan harga tiket tidak boleh negatif')
       return
     }
 
@@ -39,7 +41,7 @@ export default function TicketFormPopup({ isOpen, mode, ticket, onClose, onSubmi
     try {
       await onSubmit({
         nama: form.nama.trim(),
-        harga: Number(form.harga),
+        harga: hargaNumber,
         deskripsi: form.deskripsi.trim(),
         status: form.status,
       })

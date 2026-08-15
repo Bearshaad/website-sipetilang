@@ -9,7 +9,13 @@ export function ConfirmProvider({ children }) {
 
   const confirm = useCallback(({ title, description, details }) => {
     return new Promise((resolve) => {
-      setState({ title, description, details, resolve })
+      setState((prev) => {
+        // Kalau ada dialog sebelumnya yang belum sempat dijawab user,
+        // anggap dibatalkan (resolve false) dulu, supaya Promise lamanya
+        // tidak menggantung selamanya sebelum diganti dialog yang baru.
+        prev?.resolve(false)
+        return { title, description, details, resolve }
+      })
     })
   }, [])
 

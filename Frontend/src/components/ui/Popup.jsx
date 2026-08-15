@@ -24,7 +24,10 @@ export default function Popup({ isOpen, onClose, children }) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-3 sm:p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-3 sm:p-4"
+      onClick={onClose}
+    >
       <div
         className="hide-scrollbar relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-surface p-5 shadow-xl sm:p-8"
         onClick={(e) => e.stopPropagation()}

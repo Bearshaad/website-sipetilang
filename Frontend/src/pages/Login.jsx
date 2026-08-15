@@ -4,9 +4,10 @@ import { Eye, EyeOff, User, Lock } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import Logo from '../components/ui/Logo'
 import bgLogin from '../assets/bgLogin.jpg'
+import { Navigate } from 'react-router-dom'
 
 export default function Login() {
-  const { login } = useAuth()
+  const { login, isAuthenticated, role } = useAuth()
   const navigate = useNavigate()
 
   const [username, setUsername] = useState('')
@@ -14,6 +15,10 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+    if (isAuthenticated) {
+      return <Navigate to={role === 'owner' ? '/akun' : '/penjualan'} replace />
+    }
 
   async function handleSubmit(e) {
     e.preventDefault()

@@ -61,13 +61,13 @@ export default function Akun() {
 
   async function handleSubmit(data) {
     if (popupState.mode === 'edit') {
-      const updated = await updatePetugas(popupState.petugas.id, data)
-      setPetugasList((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+      await updatePetugas(popupState.petugas.id, data)
     } else {
-      const created = await createPetugas(data)
-      setPetugasList((prev) => [created, ...prev])
+      await createPetugas(data)
       setPage(1)
     }
+    const refreshed = await getPetugas()
+    setPetugasList(refreshed)
   }
 
   function statusBadge(petugas) {

@@ -3,11 +3,22 @@ import { LogOut } from 'lucide-react'
 import Logo from '../ui/Logo'
 import { navItems } from '../../data/navConfig'
 import { useAuth } from '../../context/AuthContext'
+import { useConfirm } from '../../context/ConfirmContext'
 
 
 export default function Sidebar() {
   const { role, logout } = useAuth()
+  const confirm = useConfirm()
   const visibleItems = navItems.filter((item) => item.allowedRoles.includes(role))
+
+  async function handleLogout() {
+    const confirmed = await confirm({
+      title: 'Keluar dari akun ini?',
+      description: 'Anda perlu login kembali untuk mengakses sistem.',
+    })
+    if (!confirmed) return
+    logout()
+  }
 
   const navLinkClass = ({ isActive }) =>
     `flex flex-1 flex-col items-center gap-1 px-1 py-2 text-[11px] font-medium leading-tight transition md:w-full md:flex-none md:py-4 ${
@@ -32,7 +43,7 @@ export default function Sidebar() {
         </nav>
 
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="flex flex-col items-center gap-1 border-t border-slate-200 px-1 py-5 text-[11px] font-medium text-slate-400 transition hover:text-red-500"
         >
           <LogOut size={20} strokeWidth={1.75} />
@@ -52,7 +63,7 @@ export default function Sidebar() {
           </NavLink>
         ))}
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="flex flex-1 flex-col items-center gap-1 px-1 py-2 text-[11px] font-medium text-slate-400 transition hover:text-red-500"
         >
           <LogOut size={20} strokeWidth={1.75} />

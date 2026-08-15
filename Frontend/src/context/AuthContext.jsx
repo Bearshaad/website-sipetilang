@@ -3,7 +3,16 @@ import { loginRequest, logoutRequest, heartbeatRequest } from '../services/authS
 
 const AuthContext = createContext(null)
 const STORAGE_KEY = 'sipetilang_auth'
-const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000 // 2 menit
+const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000
+
+function isTokenExpired(token) {
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        return payload.exp * 1000 < Date.now()
+    } catch {
+        return true
+    }
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -14,7 +23,12 @@ export function AuthProvider({ children }) {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       try {
-        setUser(JSON.parse(saved))
+        const session = JSON.parse(saved)
+        if (session.token && !isTokenExpired(session.token)) {
+          setUser(session)
+        } else {
+          localStorage.removeItem(STORAGE_KEY)
+        }
       } catch {
         localStorage.removeItem(STORAGE_KEY)
       }
