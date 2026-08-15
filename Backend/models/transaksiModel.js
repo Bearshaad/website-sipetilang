@@ -52,7 +52,7 @@ export async function updateStatus(connection, id, status) {
 }
 
 export async function getByIdForUpdate(connection, id) {
-    const [rows] = await connection.execute('SELECT * FROM transaksi WHERE id_transaksi = ?', [id]);
+    const [rows] = await connection.execute('SELECT * FROM transaksi WHERE id_transaksi = ? FOR UPDATE', [id]);
     return rows[0];
 }
 
@@ -81,4 +81,16 @@ export async function createInvoice(connection, { id_transaksi, id_qr, qty_invoi
         [id_transaksi, id_qr, qty_invoice, invoice_subtotal]
     );
     return result.insertId;
+}
+
+export async function findInvoiceByTransaksiId(connection, id_transaksi) {
+    const [rows] = await connection.execute(
+        `SELECT i.id_invoice, q.kode_qr, t.tanggal_transaksi
+         FROM invoice i
+         JOIN QRTiket q ON i.id_qr = q.id_qr
+         JOIN transaksi t ON i.id_transaksi = t.id_transaksi
+         WHERE i.id_transaksi = ?`,
+        [id_transaksi]
+    );
+    return rows[0];
 }

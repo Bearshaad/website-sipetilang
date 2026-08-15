@@ -20,6 +20,10 @@ export async function createTransaksi(req, res) {
         const itemsWithHarga = [];
 
         for (const item of items) {
+            if (!item.id_tiket || !Number.isInteger(item.qty) || item.qty <= 0) {
+                throw new Error(`Jumlah tiket tidak valid untuk id ${item.id_tiket}`);
+            }
+
             const tiket = await transaksiModel.getTiketForTransaksi(connection, item.id_tiket);
 
             if (!tiket) {
@@ -105,6 +109,32 @@ export async function updateStatusTransaksi(req, res) {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
+
+        // Kunci baris transaksi ini dulu, supaya request lain yang datang
+        // hampir bersamaan harus menunggu sampai transaction ini selesai.
+        const transaksiSaatIni = await transaksiModel.getByIdForUpdate(connection, id);
+
+        if (!transaksiSaatIni) {
+            await connection.rollback();
+            return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
+        }
+
+        // Kalau transaksi ini SUDAH 'Selesai' sebelumnya, jangan buat QR/invoice
+        // baru lagi. Kembalikan saja invoice yang sudah pernah dibuat (idempotent).
+        if (status_transaksi === 'Selesai' && transaksiSaatIni.status_transaksi === 'Selesai') {
+            const invoiceLama = await transaksiModel.findInvoiceByTransaksiId(connection, id);
+            await connection.commit();
+            return res.status(200).json({
+                message: 'Transaksi ini sudah dikonfirmasi sebelumnya',
+                invoice: invoiceLama
+                    ? {
+                          id_invoice: invoiceLama.id_invoice,
+                          kode_qr: invoiceLama.kode_qr,
+                          tanggal_transaksi: invoiceLama.tanggal_transaksi,
+                      }
+                    : null,
+            });
+        }
 
         const affectedRows = await transaksiModel.updateStatus(connection, id, status_transaksi);
 

@@ -8,7 +8,7 @@ function mapPetugasFromApi(row) {
         email: row.email_petugas,
         no_hp: row.no_hp_petugas,
         active: row.status_petugas === 'Aktif',
-        online: false,// belum ada mekanisme realtime
+        online: Boolean(row.status_online),
     }
 }
 

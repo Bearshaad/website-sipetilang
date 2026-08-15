@@ -30,7 +30,8 @@ username_petugas VARCHAR(10),
 password_petugas VARCHAR(60),
 email_petugas VARCHAR(50) UNIQUE,
 no_hp_petugas CHAR(13),
-status_petugas ENUM('Aktif','Resign') DEFAULT 'Aktif'
+status_petugas ENUM('Aktif','Resign') DEFAULT 'Aktif',
+status_online BOOLEAN DEFAULT FALSE
 );
 
 #########################################################
@@ -102,3 +103,4 @@ invoice_subtotal DECIMAL(12,2),
 FOREIGN KEY(id_transaksi) REFERENCES transaksi(id_transaksi),
 FOREIGN KEY(id_qr) REFERENCES QRTiket(id_qr)
 );
+

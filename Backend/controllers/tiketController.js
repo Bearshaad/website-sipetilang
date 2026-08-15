@@ -26,7 +26,13 @@ export async function getTiketById(req, res) {
 
 export async function createTiket(req, res) {
     try {
-        const tiketId = await tiketModel.create(req.body);
+        const { nama_tiket, harga_tiket, deskripsi_tiket, status_tiket } = req.body;
+
+        if (!nama_tiket || !harga_tiket) {
+            return res.status(400).json({ message: 'Nama tiket dan harga tiket wajib diisi' });
+        }
+
+        const tiketId = await tiketModel.create({ nama_tiket, harga_tiket, deskripsi_tiket, status_tiket });
         res.status(201).json({
             message: 'Tiket berhasil ditambahkan',
             tiketID: tiketId,
@@ -39,7 +45,13 @@ export async function createTiket(req, res) {
 export async function updateTiket(req, res) {
     try {
         const { id } = req.params;
-        const affectedRows = await tiketModel.update(id, req.body);
+        const { nama_tiket, harga_tiket, deskripsi_tiket, status_tiket } = req.body;
+
+        if (!nama_tiket || !harga_tiket) {
+            return res.status(400).json({ message: 'Nama tiket dan harga tiket wajib diisi' });
+        }
+
+        const affectedRows = await tiketModel.update(id, { nama_tiket, harga_tiket, deskripsi_tiket, status_tiket });
 
         if (affectedRows === 0) {
             return res.status(404).json({ message: 'Tiket tidak ditemukan' });

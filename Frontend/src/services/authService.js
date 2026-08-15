@@ -9,3 +9,11 @@ export async function loginRequest(username, password) {
         throw new Error(message)
     }
 }
+
+export async function logoutRequest() {
+    try {
+        await apiClient.post('/auth/logout')
+    } catch (error) {
+        console.error(error)
+    }
+}

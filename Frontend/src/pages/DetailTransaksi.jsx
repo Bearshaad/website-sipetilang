@@ -27,6 +27,8 @@ export default function DetailTransaksi() {
     } = useTransaction()
 
   const [bayarInput, setBayarInput] = useState('')
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [isBatalkan, setIsBatalkan] = useState(false)
 
   // Jaga-jaga kalau halaman ini diakses langsung tanpa ada transaksi berjalan
   if (!transactionId) {
@@ -63,20 +65,23 @@ async function handleBatalkan() {
 
   if (!confirmed) return
 
+  setIsBatalkan(true)
   try {
     await apiClient.put(`/transaksi/${transactionId}/status`, {
       status_transaksi: 'Dibatalkan',
     })
+    // hanya jalan kalau request di atas SUKSES
+    clearTransaction()
+    navigate('/penjualan')
   } catch (error) {
-      console.error(error)
+    showToast(error.response?.data?.message || 'Gagal membatalkan transaksi, silakan coba lagi', 'error')
   } finally {
-      clearTransaction()
-      navigate('/penjualan')
+    setIsBatalkan(false)
   }
 }
 
 async function handleKonfirmasi() {
-    if (!isCukup) return
+    if (!isCukup || isConfirming) return
 
     const confirmed = await confirm({
       title: 'Konfirmasi pembayaran ini?',
@@ -98,10 +103,15 @@ async function handleKonfirmasi() {
         </div>
       ),
     })
-    
+
     if (!confirmed) return
 
-    await confirmPayment(bayarNumber)
+    setIsConfirming(true)
+    try {
+      await confirmPayment(bayarNumber)
+    } finally {
+      setIsConfirming(false)
+    }
 }
 
   function handleTransaksiBaru() {
@@ -212,13 +222,18 @@ async function handleKonfirmasi() {
                 <button
                   type="button"
                   onClick={handleKonfirmasi}
-                  disabled={!isCukup}
+                  disabled={!isCukup || isConfirming}
                   className="btn-primary w-full"
                 >
-                  Konfirmasi
+                  {isConfirming ? 'Memproses...' : 'Konfirmasi'}
                 </button>
-                <button type="button" onClick={handleBatalkan} className="btn-outline-danger w-full">
-                  Batalkan
+                <button
+                  type="button"
+                  onClick={handleBatalkan}
+                  disabled={isBatalkan}
+                  className="btn-outline-danger w-full"
+                >
+                  {isBatalkan ? 'Memproses...' : 'Batalkan'}
                 </button>
               </>
             )}

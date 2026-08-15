@@ -3,7 +3,6 @@ import db from './config/db.mjs';
 import cors from 'cors';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
 
 import tiketRoutes from './routes/tiketRoutes.js'
 import petugasRoutes from './routes/petugasRoutes.js'
@@ -11,13 +10,22 @@ import ownerRoutes from './routes/ownerRoutes.js'
 import transaksiRoutes from './routes/transaksiRoutes.js'
 import laporanRoutes from './routes/laporanRoutes.js'
 import qrRoutes from './routes/qrRoutes.js'
+import { verifyToken } from './middlewares/authMiddleware.js'
+import * as petugasModel from './models/petugasModel.js'
 
 const app = express();
 const port = 3000;
 
 app.use(express.json());
-app.use(cors());
-dotenv.config();
+
+const allowedOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',')
+    : ['http://localhost:5173'];
+
+app.use(cors({
+    origin: allowedOrigins,
+}));
+
 app.use('/api/qr', qrRoutes)
 
 
@@ -71,6 +79,10 @@ app.post('/api/auth/login', async (req, res) => {
         const usernameFinal =
             role === 'owner' ? user.username_owner : user.username_petugas;
 
+        if (role === 'petugas') {
+            await petugasModel.setOnlineStatus(userId, true);
+        }
+
         const token = jwt.sign(
             { id: userId, role },
             process.env.JWT_SECRET,
@@ -100,6 +112,18 @@ app.use('/api/petugas', petugasRoutes)
 app.use('/api/owner', ownerRoutes)
 app.use('/api/transaksi', transaksiRoutes)
 app.use('/api/laporan', laporanRoutes)
+
+app.post('/api/auth/logout', verifyToken, async (req, res) => {
+    try {
+        if (req.user.role === 'petugas') {
+            await petugasModel.setOnlineStatus(req.user.id, false);
+        }
+        res.status(200).json({ message: 'Logout berhasil' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    }
+});
 
 app.get('/', (req, res) => {
     res.send('Hello World!')

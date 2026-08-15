@@ -43,3 +43,9 @@ export async function update(id, data) {
     const [result] = await db.execute(query, params);
     return result.affectedRows;
 }
+
+export async function setOnlineStatus(id, isOnline) {
+    const query = 'UPDATE petugasLoket SET status_online = ? WHERE id_petugas = ?';
+    const [result] = await db.execute(query, [isOnline, id]);
+    return result.affectedRows;
+}

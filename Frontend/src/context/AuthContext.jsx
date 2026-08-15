@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { loginRequest } from '../services/authService'
+import { loginRequest, logoutRequest } from '../services/authService'
 
 const AuthContext = createContext(null)
 const STORAGE_KEY = 'sipetilang_auth'
@@ -30,10 +30,11 @@ export function AuthProvider({ children }) {
   }
 
   // Session berakhir saat logout
-  function logout() {
+  async function logout() {
+    await logoutRequest()
     localStorage.removeItem(STORAGE_KEY)
     setUser(null)
-  }
+}
 
   const value = {
     user,

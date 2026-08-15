@@ -162,14 +162,11 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6I
 #Menambahkan transaksi
 POST http://localhost:3000/api/transaksi
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODY3NzU3MjcsImV4cCI6MTc4NjgwNDUyN30.x4twaGO8_ulALCx4P7SXwRRljsxeUmo0QC-LqHOG6Tg
 
 {
   "id_petugas": 1,
-  "items": [
-    { "id_tiket": 1, "qty": 1 },
-    { "id_tiket": 3, "qty": 1 }
-  ]
+  "items": [{ "id_tiket": 1, "qty": "satu" }]
 }
 
 ###
@@ -190,8 +187,8 @@ POST http://localhost:3000/api/auth/login
 Content-Type: application/json
 
 {
-  "username": "queeny",
-  "password": "lumbalumba"
+  "username": "zrielavish",
+  "password": "kurakura"
 }
 
 ###
@@ -202,6 +199,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6I
 #Buat akun owner baru
 POST http://localhost:3000/api/owner
 Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg2Nzc5MTYwLCJleHAiOjE3ODY4MDc5NjB9.au12Na-6JfCsm_zNzM5xdCdW1vczxb_V6X-AFJ1_PA4
 
 {
   "nama_owner": "queeny",
@@ -212,7 +210,6 @@ Content-Type: application/json
 }
 ###
 
-###
 #Laporan harian
 GET http://localhost:3000/api/laporan?period=daily
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
@@ -249,40 +246,6 @@ Content-Type: application/json
   "no_hp_petugas": "081222341234",
   "status_petugas": "Aktif"
 }
-###
-#Tambah petugas Pintu Masuk
-POST http://localhost:3000/api/petugas-pintu-masuk
-Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
-
-{
-  "nama_pGerbang": "Brick",
-  "username_pGerbang":"Bricked",
-  "password_pGerbang": "kurakura",
-  "email_pGerbang":"bricked@gmail.com",
-  "no_hp_pGerbang": "082212341234",
-  "status_pGerbang": "Aktif"
-}
-
-###
-#Mencari petugas Pintu Masuk by id
-GET http://localhost:3000/api/petugas-pintu-masuk
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
-
-###
-#Update Petugas
-PUT http://localhost:3000/api/petugas-pintu-masuk/1
-Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
-
-{
-  "nama_pGerbang": "Bloom",
-  "username_pGerbang":"bloom",
-  "password_pGerbang": "kurakura",
-  "email_pGerbang":"bloom@gmail.com",
-  "no_hp_pGerbang": "081222341234",
-  "status_pGerbang": "Aktif"
-}
 
 ###
 #Scan Qr
@@ -293,3 +256,24 @@ Content-Type: application/json
 {
   "kode_qr": "22093aa4-4818-4ad7-b479-4c6ce62f0298"
 }
+
+###
+# Konfirmasi pertama
+PUT http://localhost:3000/api/transaksi/5/status
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODY3NzU3MjcsImV4cCI6MTc4NjgwNDUyN30.x4twaGO8_ulALCx4P7SXwRRljsxeUmo0QC-LqHOG6Tg
+
+{
+  "status_transaksi": "Selesai"
+}
+
+###
+# Konfirmasi kedua (transaksi yang SAMA, dipanggil lagi)
+PUT http://localhost:3000/api/transaksi/5/status
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODY3NzU3MjcsImV4cCI6MTc4NjgwNDUyN30.x4twaGO8_ulALCx4P7SXwRRljsxeUmo0QC-LqHOG6Tg
+
+{
+  "status_transaksi": "Selesai"
+}
+
