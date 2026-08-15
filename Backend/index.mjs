@@ -125,6 +125,18 @@ app.post('/api/auth/logout', verifyToken, async (req, res) => {
     }
 });
 
+app.post('/api/auth/heartbeat', verifyToken, async (req, res) => {
+    try {
+        if (req.user.role === 'petugas') {
+            await petugasModel.updateLastActive(req.user.id);
+        }
+        res.status(200).json({ message: 'ok' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    }
+});
+
 app.get('/', (req, res) => {
     res.send('Hello World!')
 })

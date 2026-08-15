@@ -18,7 +18,13 @@ export default function Akun() {
   const [popupState, setPopupState] = useState({ isOpen: false, mode: 'add', petugas: null })
 
   useEffect(() => {
-    getPetugas().then(setPetugasList)
+    function fetchPetugas() {
+      getPetugas().then(setPetugasList)
+    }
+
+    fetchPetugas()
+    const interval = setInterval(fetchPetugas, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const filtered = useMemo(() => {

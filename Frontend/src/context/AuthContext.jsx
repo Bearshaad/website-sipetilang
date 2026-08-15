@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { loginRequest, logoutRequest } from '../services/authService'
+import { loginRequest, logoutRequest, heartbeatRequest } from '../services/authService'
 
 const AuthContext = createContext(null)
 const STORAGE_KEY = 'sipetilang_auth'
+const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000 // 2 menit
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -20,6 +21,16 @@ export function AuthProvider({ children }) {
     }
     setIsLoading(false)
   }, [])
+
+  useEffect(() => {
+    if (!user || user.role !== 'petugas') return
+
+    const interval = setInterval(() => {
+      heartbeatRequest()
+    }, HEARTBEAT_INTERVAL_MS)
+
+    return () => clearInterval(interval)
+  }, [user])
 
   async function login(username, password) {
     const { token, user: loggedInUser } = await loginRequest(username, password)

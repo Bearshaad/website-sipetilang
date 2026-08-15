@@ -7,7 +7,6 @@ import { useTransaction } from '../context/TransactionContext'
 import { useTicketCatalog } from '../context/TicketCatalogContext'
 import { searchTickets } from '../services/ticketService'
 import { formatRupiah } from '../utils/currency'
-import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext.jsx'
 
 export default function Penjualan() {
@@ -58,10 +57,9 @@ export default function Penjualan() {
     setShowDropdown(false)
   }
 
-  const { user } = useAuth()
   async function handleBuatTransaksi() {
     try {
-        await createTransaction(user.id)
+        await createTransaction()
         navigate('/penjualan/transaksi')
     } catch (error) {
         showToast(error.response?.data?.message || 'Gagal membuat transaksi', 'error')

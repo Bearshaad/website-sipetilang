@@ -22,7 +22,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6I
 #Tambah petugas 1
 POST http://localhost:3000/api/petugas
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg0OTMxNzIzLCJleHAiOjE3ODQ5NjA1MjN9.gS2ikzdMISG8tXZ54oPBpAGnnpi5JCKN98-RuXvvUBo
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im93bmVyIiwiaWF0IjoxNzg2Nzk1MTA2LCJleHAiOjE3ODY4MjM5MDZ9.g0AdgggnMTZPRePIo6zahSnWlHgLMu2VlJMBkzikbi4
 
 {
   "nama_petugas": "Artheria",
@@ -165,8 +165,7 @@ Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODY3NzU3MjcsImV4cCI6MTc4NjgwNDUyN30.x4twaGO8_ulALCx4P7SXwRRljsxeUmo0QC-LqHOG6Tg
 
 {
-  "id_petugas": 1,
-  "items": [{ "id_tiket": 1, "qty": "satu" }]
+  "items": [{ "id_tiket": 1, "qty": 1 }]
 }
 
 ###
@@ -175,20 +174,20 @@ GET http://localhost:3000/api/transaksi/3
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
 ###
 #Konfirmasi pembayaran (ubah status jadi Selesai)
-PUT http://localhost:3000/api/transaksi/3/status
+PUT http://localhost:3000/api/transaksi/34/status
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODY3OTUyMjIsImV4cCI6MTc4NjgyNDAyMn0.EN8fOHu9COWkkOYSfHCkWKAqrF2GjkpXpzdVPSsR7xE
 
 {
-  "status_transaksi": "Dibatalkan"
+  "status_transaksi": "Selesai"
 }
 ###
 POST http://localhost:3000/api/auth/login
 Content-Type: application/json
 
 {
-  "username": "zrielavish",
-  "password": "kurakura"
+  "username": "artheria",
+  "password": "lumbalumba"
 }
 
 ###
@@ -211,9 +210,8 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6I
 ###
 
 #Laporan harian
-GET http://localhost:3000/api/laporan?period=daily
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Mywicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODQ5MzIwMjgsImV4cCI6MTc4NDk2MDgyOH0.Lg6NkWQNb3jAGjYz6gS34VMxcHHd1lgnheY9krxKnyk
-
+GET http://localhost:3000/api/laporan?period=semua
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InBldHVnYXMiLCJpYXQiOjE3ODY4MDAwNzcsImV4cCI6MTc4NjgyODg3N30.uMT_5igOxwvmCerGLw0KdNE2CnoxHhHIyTlMUoMA6TY
 
 ###
 #Laporan mingguan

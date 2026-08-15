@@ -3,6 +3,11 @@ import * as laporanModel from '../models/laporanModel.js'
 export async function getLaporan(req, res) {
     try {
         const { period } = req.query;
+        const periodValid = ['daily', 'weekly', 'monthly', 'yearly'];
+
+        if (!periodValid.includes(period)) {
+            return res.status(400).json({ message: 'Periode tidak valid' });
+        }
 
         let dateCondition = '';
         if (period === 'daily') {

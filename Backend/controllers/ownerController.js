@@ -60,6 +60,11 @@ export async function createOwner(req, res) {
 export async function updateOwner(req, res) {
     try {
         const { id } = req.params;
+
+        if (Number(id) !== req.user.id) {
+            return res.status(403).json({ message: 'Anda hanya dapat mengubah data akun Anda sendiri' });
+        }
+
         const { nama_owner, username_owner, password_owner, email_owner, no_hp_owner } = req.body;
 
         if (!nama_owner || !username_owner || !email_owner || !no_hp_owner) {

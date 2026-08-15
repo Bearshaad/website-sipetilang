@@ -26,12 +26,13 @@ no_hp_owner CHAR(13)
 CREATE TABLE petugasLoket (
 id_petugas INT AUTO_INCREMENT PRIMARY KEY,
 nama_petugas VARCHAR(50),
-username_petugas VARCHAR(10),
+username_petugas VARCHAR(10) UNIQUE,
 password_petugas VARCHAR(60),
 email_petugas VARCHAR(50) UNIQUE,
 no_hp_petugas CHAR(13),
 status_petugas ENUM('Aktif','Resign') DEFAULT 'Aktif',
 status_online BOOLEAN DEFAULT FALSE
+last_active TIMESTAMP NULL DEFAULT NULL
 );
 
 #########################################################
@@ -103,4 +104,3 @@ invoice_subtotal DECIMAL(12,2),
 FOREIGN KEY(id_transaksi) REFERENCES transaksi(id_transaksi),
 FOREIGN KEY(id_qr) REFERENCES QRTiket(id_qr)
 );
-

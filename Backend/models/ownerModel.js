@@ -1,7 +1,7 @@
 import db from '../config/db.mjs'
 
 export async function findAll(search) {
-    let query = 'SELECT * FROM owner';
+    let query = 'SELECT id_owner, nama_owner, username_owner, email_owner, no_hp_owner FROM owner';
     let params = [];
 
     if (search) {
@@ -14,7 +14,7 @@ export async function findAll(search) {
 }
 
 export async function findById (id) {
-    const query = 'SELECT * FROM owner WHERE id_owner = ?';
+    const query = 'SELECT id_owner, nama_owner, username_owner, email_owner, no_hp_owner FROM owner WHERE id_owner = ?';
     const [rows] = await db.execute(query, [id]);
     return rows[0];
 }

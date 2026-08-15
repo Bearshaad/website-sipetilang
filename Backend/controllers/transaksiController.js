@@ -4,11 +4,14 @@ import * as transaksiModel from '../models/transaksiModel.js'
 
 const TAX_RATE = 0.11;
 
-export async function createTransaksi(req, res) {
-    const { id_petugas, items } = req.body;
+class BusinessError extends Error {}
 
-    if (!id_petugas || !Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({ message: 'id_petugas dan items wajib diisi' });
+export async function createTransaksi(req, res) {
+    const id_petugas = req.user.id;
+    const { items } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ message: 'items wajib diisi' });
     }
 
     const connection = await db.getConnection();
@@ -21,16 +24,16 @@ export async function createTransaksi(req, res) {
 
         for (const item of items) {
             if (!item.id_tiket || !Number.isInteger(item.qty) || item.qty <= 0) {
-                throw new Error(`Jumlah tiket tidak valid untuk id ${item.id_tiket}`);
+                throw new BusinessError(`Jumlah tiket tidak valid untuk id ${item.id_tiket}`);
             }
 
             const tiket = await transaksiModel.getTiketForTransaksi(connection, item.id_tiket);
 
             if (!tiket) {
-                throw new Error(`Tiket dengan id ${item.id_tiket} tidak ditemukan`);
+                throw new BusinessError(`Tiket dengan id ${item.id_tiket} tidak ditemukan`);
             }
             if (tiket.status_tiket !== 'Tersedia') {
-                throw new Error(`Tiket dengan id ${item.id_tiket} sedang tidak tersedia`);
+                throw new BusinessError(`Tiket dengan id ${item.id_tiket} sedang tidak tersedia`);
             }
 
             const hargaSatuan = tiket.harga_tiket;
@@ -72,9 +75,14 @@ export async function createTransaksi(req, res) {
             status_transaksi: 'Pending',
             items: itemsWithHarga,
         });
+        
     } catch (error) {
         await connection.rollback();
-        res.status(400).json({ message: error.message });
+        if (error instanceof BusinessError) {
+            return res.status(400).json({ message: error.message });
+        }
+        console.error(error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
     } finally {
         connection.release();
     }
@@ -106,12 +114,12 @@ export async function updateStatusTransaksi(req, res) {
         return res.status(400).json({ message: 'Status tidak valid' });
     }
 
+    const STATUS_FINAL = ['Selesai', 'Dibatalkan'];
+
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
 
-        // Kunci baris transaksi ini dulu, supaya request lain yang datang
-        // hampir bersamaan harus menunggu sampai transaction ini selesai.
         const transaksiSaatIni = await transaksiModel.getByIdForUpdate(connection, id);
 
         if (!transaksiSaatIni) {
@@ -119,8 +127,8 @@ export async function updateStatusTransaksi(req, res) {
             return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
         }
 
-        // Kalau transaksi ini SUDAH 'Selesai' sebelumnya, jangan buat QR/invoice
-        // baru lagi. Kembalikan saja invoice yang sudah pernah dibuat (idempotent).
+        // Kasus konfirmasi 'Selesai' yang diulang (idempotent) - kembalikan invoice yang sudah ada,
+        // bukan error, karena ini kemungkinan besar cuma double-klik dari user.
         if (status_transaksi === 'Selesai' && transaksiSaatIni.status_transaksi === 'Selesai') {
             const invoiceLama = await transaksiModel.findInvoiceByTransaksiId(connection, id);
             await connection.commit();
@@ -133,6 +141,14 @@ export async function updateStatusTransaksi(req, res) {
                           tanggal_transaksi: invoiceLama.tanggal_transaksi,
                       }
                     : null,
+            });
+        }
+
+        // Status final (Selesai / Dibatalkan) tidak boleh diubah lagi ke status APAPUN.
+        if (STATUS_FINAL.includes(transaksiSaatIni.status_transaksi)) {
+            await connection.rollback();
+            return res.status(409).json({
+                message: `Transaksi ini sudah berstatus '${transaksiSaatIni.status_transaksi}' dan tidak dapat diubah lagi`,
             });
         }
 

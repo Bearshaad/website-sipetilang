@@ -17,3 +17,11 @@ export async function logoutRequest() {
         console.error(error)
     }
 }
+
+export async function heartbeatRequest() {
+    try {
+        await apiClient.post('/auth/heartbeat')
+    } catch (error) {
+        console.error(error)
+    }
+}

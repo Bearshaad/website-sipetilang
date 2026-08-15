@@ -69,13 +69,13 @@ export function TransactionProvider({ children }) {
 
     const change = Math.max(0, paidAmount - confirmedTotal)
 
-async function createTransaction(id_petugas) {
+async function createTransaction() {
     const items = cart.map((item) => ({
         id_tiket: item.ticket.id,
         qty: item.jumlah,
     }))
 
-    const res = await apiClient.post('/transaksi', { id_petugas, items })
+    const res = await apiClient.post('/transaksi', { items })
     const data = res.data
 
     setTransactionId(data.id_transaksi)

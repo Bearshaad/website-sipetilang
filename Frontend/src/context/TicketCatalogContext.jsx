@@ -10,12 +10,12 @@ import {
 const TicketCatalogContext = createContext(null)
 
 export function TicketCatalogProvider({ children }) {
-    const { isAuthenticated } = useAuth()
+    const { isAuthenticated, role } = useAuth()
     const [tickets, setTickets] = useState([])
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
-        if (!isAuthenticated) {
+        if (!isAuthenticated || role !== 'petugas') {
             setIsLoading(false)
             return
         }
@@ -23,7 +23,7 @@ export function TicketCatalogProvider({ children }) {
             setTickets(data)
             setIsLoading(false)
         })
-    }, [isAuthenticated])
+    }, [isAuthenticated, role])
 
   const addTicket = useCallback(async (data) => {
     const newTicket = await createTicket(data)
