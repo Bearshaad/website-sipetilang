@@ -3,13 +3,18 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Download, Wallet, Receipt } from 'lucide-react'
 import Topbar from '../components/layout/Topbar'
 import Pagination from '../components/ui/Pagination'
+import {
+  getSalesReport,
+  getSalesReportExport,
+  getStatistikPenjualan,
+  getAvailableYears,
+  buildReportExcel,
+} from '../services/reportService'
 import { formatRupiah } from '../utils/currency'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
-import { getSalesReport, getSalesReportExport, getStatistikPenjualan, buildReportExcel } from '../services/reportService'
 import RevenueTrendChart from '../components/laporan/RevenueTrendChart'
 import TopTicketsChart from '../components/laporan/TopTicketsChart'
-
 
 const PERIODS = [
   { key: 'daily', label: 'Daily', pendapatanLabel: 'Pendapatan Harian' },
@@ -17,8 +22,9 @@ const PERIODS = [
   { key: 'monthly', label: 'Monthly', pendapatanLabel: 'Pendapatan Bulanan' },
   { key: 'yearly', label: 'Yearly', pendapatanLabel: 'Pendapatan Tahunan' },
 ]
-
 const VALID_PERIODS = PERIODS.map((p) => p.key)
+const SEARCH_DEBOUNCE_MS = 500
+const CURRENT_YEAR = new Date().getFullYear()
 
 function getTrenTitle(period) {
   if (period === 'daily') return 'Pendapatan Bulan Berjalan'
@@ -27,12 +33,11 @@ function getTrenTitle(period) {
   return 'Pendapatan Tahun Ini'
 }
 
-const SEARCH_DEBOUNCE_MS = 500
-
 export default function LaporanPenjualan() {
   const { period } = useParams()
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { role } = useAuth()
 
   const [report, setReport] = useState({
     pendapatan: 0,
@@ -44,24 +49,28 @@ export default function LaporanPenjualan() {
   })
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [tahun, setTahun] = useState(CURRENT_YEAR)
+  const [availableYears, setAvailableYears] = useState([CURRENT_YEAR])
   const [isDownloading, setIsDownloading] = useState(false)
   const [statistik, setStatistik] = useState({ tren: [], tiketTerlaris: [] })
-  const { role } = useAuth()
   const latestRequestId = useRef(0)
 
-  // "Nomor tiket antrian" - hasil fetch cuma dipakai kalau dia masih yang PALING BARU
-  // diminta. Kalau ada fetch lain yang dikirim belakangan, hasil yang lebih lama
-  // otomatis diabaikan meski responnya datang duluan.
+  // Ambil daftar tahun yang punya data transaksi, sekali saat halaman dibuka
+  useEffect(() => {
+    getAvailableYears()
+      .then(setAvailableYears)
+      .catch((error) => console.error(error))
+  }, [])
+
   function fetchReport(pageToLoad, searchTerm) {
     const requestId = ++latestRequestId.current
-    getSalesReport(period, pageToLoad, searchTerm).then((data) => {
+    getSalesReport(period, pageToLoad, searchTerm, tahun).then((data) => {
       if (requestId === latestRequestId.current) {
         setReport(data)
       }
     })
   }
 
-  // Debounce: tunda update `debouncedQuery` sampai user berhenti mengetik 500ms
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedQuery(query)
@@ -69,26 +78,24 @@ export default function LaporanPenjualan() {
     return () => clearTimeout(timeoutId)
   }, [query])
 
-  // Fetch beneran cuma jalan saat period berubah, atau debouncedQuery berubah
-  // (bukan setiap ketikan mentah)
   useEffect(() => {
     if (!VALID_PERIODS.includes(period)) return
     fetchReport(1, debouncedQuery)
-  }, [period, debouncedQuery])
-
-  if (!VALID_PERIODS.includes(period)) {
-    return <Navigate to="/laporan/daily" replace />
-  }
+  }, [period, debouncedQuery, tahun])
 
   useEffect(() => {
     if (!VALID_PERIODS.includes(period) || role !== 'owner') return
-    getStatistikPenjualan(period)
+    getStatistikPenjualan(period, tahun)
       .then(setStatistik)
       .catch((error) => {
         console.error(error)
         showToast(error.response?.data?.message || 'Gagal memuat data statistik', 'error')
       })
-  }, [period, role])
+  }, [period, role, tahun])
+
+  if (!VALID_PERIODS.includes(period)) {
+    return <Navigate to="/laporan/daily" replace />
+  }
 
   const activePeriod = PERIODS.find((p) => p.key === period)
 
@@ -99,8 +106,8 @@ export default function LaporanPenjualan() {
   async function handleUnduhLaporan() {
     setIsDownloading(true)
     try {
-      const transaksiLengkap = await getSalesReportExport(period, debouncedQuery)
-      await buildReportExcel(transaksiLengkap, `laporan-penjualan-${period}.xlsx`)
+      const transaksiLengkap = await getSalesReportExport(period, debouncedQuery, tahun)
+      await buildReportExcel(transaksiLengkap, `laporan-penjualan-${period}-${tahun}.xlsx`)
     } catch (error) {
       showToast(error.response?.data?.message || 'Gagal mengunduh laporan, silakan coba lagi', 'error')
     } finally {
@@ -120,21 +127,33 @@ export default function LaporanPenjualan() {
         <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
           <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Laporan Penjualan</h1>
 
-          <div className="flex flex-wrap gap-2 rounded-full border border-slate-200 bg-white p-1">
-            {PERIODS.map((p) => (
-              <button
-                key={p.key}
-                type="button"
-                onClick={() => navigate(`/laporan/${p.key}`)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
-                  period === p.key
-                    ? 'bg-primary-700 text-white'
-                    : 'text-slate-500 hover:bg-slate-50'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={tahun}
+              onChange={(e) => setTahun(Number(e.target.value))}
+              className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-100"
+            >
+              {availableYears.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+
+            <div className="flex flex-wrap gap-2 rounded-full border border-slate-200 bg-white p-1">
+              {PERIODS.map((p) => (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => navigate(`/laporan/${p.key}`)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition sm:px-4 sm:text-sm ${
+                    period === p.key
+                      ? 'bg-primary-700 text-white'
+                      : 'text-slate-500 hover:bg-slate-50'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -181,6 +200,7 @@ export default function LaporanPenjualan() {
             </button>
           </div>
         </div>
+
         {role === 'owner' && (
           <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card sm:p-6 lg:col-span-2">
@@ -193,6 +213,7 @@ export default function LaporanPenjualan() {
             </div>
           </div>
         )}
+
         <div className="rounded-2xl border border-slate-200 bg-white shadow-card">
           <h2 className="border-b border-slate-100 p-4 text-center text-lg font-bold text-slate-900 sm:p-6 sm:text-xl">
             Transaksi Terbaru
@@ -273,32 +294,4 @@ export default function LaporanPenjualan() {
       </main>
     </>
   )
-}
-
-export async function getTrenPendapatan(dateCondition, groupByMonth) {
-    const groupFormat = groupByMonth ? '%Y-%m' : '%Y-%m-%d';
-    const [rows] = await db.execute(`
-        SELECT DATE_FORMAT(t.tanggal_transaksi, '${groupFormat}') as label,
-               COALESCE(SUM(t.total_transaksi), 0) as pendapatan
-        FROM transaksi t
-        WHERE t.status_transaksi = 'Selesai' ${dateCondition}
-        GROUP BY label
-        ORDER BY label ASC
-    `);
-    return rows;
-}
-
-export async function getTiketTerlaris(dateCondition, limit) {
-    const safeLimit = Number.isInteger(limit) && limit > 0 ? limit : 5;
-    const [rows] = await db.execute(`
-        SELECT jt.nama_tiket, SUM(dt.qty) as totalTerjual
-        FROM detail_transaksi dt
-        JOIN transaksi t ON dt.id_transaksi = t.id_transaksi
-        JOIN jenisTiket jt ON dt.id_tiket = jt.id_tiket
-        WHERE t.status_transaksi = 'Selesai' ${dateCondition}
-        GROUP BY jt.id_tiket, jt.nama_tiket
-        ORDER BY totalTerjual DESC
-        LIMIT ${safeLimit}
-    `);
-    return rows;
 }

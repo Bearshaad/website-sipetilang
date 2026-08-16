@@ -20,8 +20,8 @@ function mapTransaksiFromApi(row) {
     }
 }
 
-export async function getSalesReport(period, page = 1, search = '') {
-    const res = await apiClient.get('/laporan', { params: { period, page, search } })
+export async function getSalesReport(period, page = 1, search = '', tahun = new Date().getFullYear()) {
+    const res = await apiClient.get('/laporan', { params: { period, page, search, year: tahun } })
     return {
         period,
         pendapatan: res.data.pendapatan,
@@ -33,8 +33,8 @@ export async function getSalesReport(period, page = 1, search = '') {
     }
 }
 
-export async function getSalesReportExport(period, search = '') {
-    const res = await apiClient.get('/laporan/export', { params: { period, search } })
+export async function getSalesReportExport(period, search = '', tahun = new Date().getFullYear()) {
+    const res = await apiClient.get('/laporan/export', { params: { period, search, year: tahun } })
     return res.data.transaksi.map(mapTransaksiFromApi)
 }
 
@@ -106,7 +106,12 @@ export async function buildReportExcel(transaksiList, fileName) {
     URL.revokeObjectURL(url)
 }
 
-export async function getStatistikPenjualan(period) {
-    const res = await apiClient.get('/laporan/statistik', { params: { period } })
+export async function getStatistikPenjualan(period, tahun = new Date().getFullYear()) {
+    const res = await apiClient.get('/laporan/statistik', { params: { period, year: tahun } })
     return res.data
+}
+
+export async function getAvailableYears() {
+    const res = await apiClient.get('/laporan/tahun')
+    return res.data.tahun
 }

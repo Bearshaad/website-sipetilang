@@ -1,28 +1,28 @@
 import db from '../config/db.mjs'
 
-export async function getRingkasan(dateCondition) {
+export async function getRingkasan(dateCondition, dateParams) {
     const [rows] = await db.execute(`
         SELECT
             COALESCE(SUM(total_transaksi), 0) as pendapatan,
             COUNT(*) as jumlahTransaksi
         FROM transaksi t
         WHERE status_transaksi = 'Selesai' ${dateCondition}
-    `);
+    `, dateParams);
     return rows[0];
 }
 
-export async function getTotalTiketTerjual(dateCondition) {
+export async function getTotalTiketTerjual(dateCondition, dateParams) {
     const [rows] = await db.execute(`
         SELECT COALESCE(SUM(dt.qty), 0) as totalTiketTerjual
         FROM detail_transaksi dt
         JOIN transaksi t ON dt.id_transaksi = t.id_transaksi
         WHERE t.status_transaksi = 'Selesai' ${dateCondition}
-    `);
+    `, dateParams);
     return rows[0].totalTiketTerjual;
 }
 
-export async function countTransaksi(dateCondition, searchCondition, searchParam) {
-    const params = searchParam ? [searchParam] : [];
+export async function countTransaksi(dateCondition, dateParams, searchCondition, searchParam) {
+    const params = searchParam ? [...dateParams, searchParam] : [...dateParams];
     const [rows] = await db.execute(`
         SELECT COUNT(*) as total
         FROM transaksi t
@@ -31,9 +31,6 @@ export async function countTransaksi(dateCondition, searchCondition, searchParam
     return rows[0].total;
 }
 
-// Ambil detail item untuk sekumpulan id_transaksi, lalu kelompokkan per transaksi.
-// Dipakai bersama oleh versi paginated (getTransaksiTerbaru) & versi lengkap untuk
-// export (getAllTransaksi), supaya logic pengelompokan item tidak ditulis dua kali.
 async function attachItems(transaksiRows) {
     if (transaksiRows.length === 0) return [];
 
@@ -71,12 +68,11 @@ async function attachItems(transaksiRows) {
     }));
 }
 
-// Versi PAGINATED - dipakai untuk tampilan tabel (LIMIT/OFFSET per halaman)
-export async function getTransaksiTerbaru(dateCondition, searchCondition, searchParam, limit, offset) {
+export async function getTransaksiTerbaru(dateCondition, dateParams, searchCondition, searchParam, limit, offset) {
     const safeLimit = Number.isInteger(limit) ? limit : 5;
     const safeOffset = Number.isInteger(offset) && offset >= 0 ? offset : 0;
 
-    const params = searchParam ? [searchParam] : [];
+    const params = searchParam ? [...dateParams, searchParam] : [...dateParams];
     const [transaksiRows] = await db.execute(`
         SELECT t.id_transaksi, t.tanggal_transaksi, t.subtotal_transaksi, t.tax_transaksi, t.total_transaksi, t.status_transaksi
         FROM transaksi t
@@ -87,9 +83,9 @@ export async function getTransaksiTerbaru(dateCondition, searchCondition, search
 
     return attachItems(transaksiRows);
 }
-// Versi LENGKAP (tanpa LIMIT) - khusus dipakai untuk export Excel
-export async function getAllTransaksi(dateCondition, searchCondition, searchParam) {
-    const params = searchParam ? [searchParam] : [];
+
+export async function getAllTransaksi(dateCondition, dateParams, searchCondition, searchParam) {
+    const params = searchParam ? [...dateParams, searchParam] : [...dateParams];
     const [transaksiRows] = await db.execute(`
         SELECT t.id_transaksi, t.tanggal_transaksi, t.subtotal_transaksi, t.tax_transaksi, t.total_transaksi, t.status_transaksi
         FROM transaksi t
@@ -100,7 +96,7 @@ export async function getAllTransaksi(dateCondition, searchCondition, searchPara
     return attachItems(transaksiRows);
 }
 
-export async function getTrenPendapatan(dateCondition, groupByMonth) {
+export async function getTrenPendapatan(dateCondition, dateParams, groupByMonth) {
     const groupFormat = groupByMonth ? '%Y-%m' : '%Y-%m-%d';
     const [rows] = await db.execute(`
         SELECT DATE_FORMAT(t.tanggal_transaksi, '${groupFormat}') as label,
@@ -109,11 +105,11 @@ export async function getTrenPendapatan(dateCondition, groupByMonth) {
         WHERE t.status_transaksi = 'Selesai' ${dateCondition}
         GROUP BY label
         ORDER BY label ASC
-    `);
+    `, dateParams);
     return rows;
 }
 
-export async function getTiketTerlaris(dateCondition, limit) {
+export async function getTiketTerlaris(dateCondition, dateParams, limit) {
     const safeLimit = Number.isInteger(limit) && limit > 0 ? limit : 5;
     const [rows] = await db.execute(`
         SELECT jt.nama_tiket, SUM(dt.qty) as totalTerjual
@@ -124,6 +120,15 @@ export async function getTiketTerlaris(dateCondition, limit) {
         GROUP BY jt.id_tiket, jt.nama_tiket
         ORDER BY totalTerjual DESC
         LIMIT ${safeLimit}
-    `);
+    `, dateParams);
     return rows;
+}
+
+export async function getAvailableYears() {
+    const [rows] = await db.execute(`
+        SELECT DISTINCT YEAR(tanggal_transaksi) as tahun
+        FROM transaksi
+        ORDER BY tahun DESC
+    `);
+    return rows.map((r) => r.tahun);
 }

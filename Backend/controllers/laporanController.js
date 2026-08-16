@@ -3,12 +3,33 @@ import * as laporanModel from '../models/laporanModel.js'
 const PAGE_SIZE = 5;
 const PERIOD_VALID = ['daily', 'weekly', 'monthly', 'yearly'];
 
-function buildDateCondition(period) {
-    if (period === 'daily') return 'AND DATE(t.tanggal_transaksi) = CURDATE()';
-    if (period === 'weekly') return 'AND YEARWEEK(t.tanggal_transaksi, 1) = YEARWEEK(CURDATE(), 1)';
-    if (period === 'monthly') return 'AND MONTH(t.tanggal_transaksi) = MONTH(CURDATE()) AND YEAR(t.tanggal_transaksi) = YEAR(CURDATE())';
-    if (period === 'yearly') return 'AND YEAR(t.tanggal_transaksi) = YEAR(CURDATE())';
-    return '';
+// Kondisi tanggal sekarang berdasarkan TAHUN PILIHAN, tapi bulan/tanggal/minggu
+// acuannya tetap ikut hari ini. Contoh: hari ini 17 Agustus 2026, pilih tahun 2025
+// -> Daily akan mencari transaksi tanggal 17 Agustus 2025.
+function buildDateCondition(period, tahun) {
+    if (period === 'daily') {
+        return {
+            sql: 'AND MONTH(t.tanggal_transaksi) = MONTH(CURDATE()) AND DAY(t.tanggal_transaksi) = DAY(CURDATE()) AND YEAR(t.tanggal_transaksi) = ?',
+            params: [tahun],
+        };
+    }
+    if (period === 'weekly') {
+        return {
+            sql: 'AND WEEK(t.tanggal_transaksi, 1) = WEEK(CURDATE(), 1) AND YEAR(t.tanggal_transaksi) = ?',
+            params: [tahun],
+        };
+    }
+    if (period === 'monthly') {
+        return {
+            sql: 'AND MONTH(t.tanggal_transaksi) = MONTH(CURDATE()) AND YEAR(t.tanggal_transaksi) = ?',
+            params: [tahun],
+        };
+    }
+    // yearly
+    return {
+        sql: 'AND YEAR(t.tanggal_transaksi) = ?',
+        params: [tahun],
+    };
 }
 
 function buildSearchCondition(search) {
@@ -21,35 +42,45 @@ function buildSearchCondition(search) {
     };
 }
 
-function buildTrendCondition(period) {
+// Rentang waktu khusus untuk grafik tren (Owner) - butuh jendela waktu lebih
+// panjang dibanding filter ringkasan biasa, supaya "tren"-nya bermakna.
+function buildTrendCondition(period, tahun) {
     if (period === 'daily') {
         return {
-            dateCondition: "AND t.tanggal_transaksi >= DATE_FORMAT(CURDATE(), '%Y-%m-01') AND DATE(t.tanggal_transaksi) <= CURDATE()",
+            sql: `AND t.tanggal_transaksi >= STR_TO_DATE(CONCAT(?, '-', MONTH(CURDATE()), '-01'), '%Y-%m-%d')
+                  AND t.tanggal_transaksi <= STR_TO_DATE(CONCAT(?, '-', MONTH(CURDATE()), '-', DAY(CURDATE())), '%Y-%m-%d')`,
+            params: [tahun, tahun],
             groupByMonth: false,
         };
     }
     if (period === 'weekly') {
-        return {
-            dateCondition: buildDateCondition('weekly'),
-            groupByMonth: false,
-        };
+        const { sql, params } = buildDateCondition('weekly', tahun);
+        return { sql, params, groupByMonth: false };
     }
     if (period === 'monthly') {
         return {
-            dateCondition: "AND t.tanggal_transaksi >= DATE_SUB(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 5 MONTH)",
+            sql: `AND t.tanggal_transaksi >= DATE_SUB(STR_TO_DATE(CONCAT(?, '-', MONTH(CURDATE()), '-01'), '%Y-%m-%d'), INTERVAL 5 MONTH)
+                  AND t.tanggal_transaksi < DATE_ADD(STR_TO_DATE(CONCAT(?, '-', MONTH(CURDATE()), '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH)`,
+            params: [tahun, tahun],
             groupByMonth: true,
         };
     }
     // yearly
     return {
-        dateCondition: buildDateCondition('yearly'),
+        sql: 'AND YEAR(t.tanggal_transaksi) = ?',
+        params: [tahun],
         groupByMonth: true,
     };
 }
 
+function resolveTahun(rawYear) {
+    const parsed = parseInt(rawYear);
+    return Number.isInteger(parsed) ? parsed : new Date().getFullYear();
+}
+
 export async function getLaporan(req, res) {
     try {
-        const { period, page, search } = req.query;
+        const { period, page, search, year } = req.query;
 
         if (!PERIOD_VALID.includes(period)) {
             return res.status(400).json({ message: 'Periode tidak valid' });
@@ -57,14 +88,15 @@ export async function getLaporan(req, res) {
 
         const currentPage = Math.max(1, parseInt(page) || 1);
         const offset = (currentPage - 1) * PAGE_SIZE;
+        const tahun = resolveTahun(year);
 
-        const dateCondition = buildDateCondition(period);
+        const { sql: dateConditionSql, params: dateParams } = buildDateCondition(period, tahun);
         const { searchCondition, searchParam } = buildSearchCondition(search);
 
-        const ringkasan = await laporanModel.getRingkasan(dateCondition);
-        const totalTiketTerjual = await laporanModel.getTotalTiketTerjual(dateCondition);
-        const totalTransaksi = await laporanModel.countTransaksi(dateCondition, searchCondition, searchParam);
-        const transaksi = await laporanModel.getTransaksiTerbaru(dateCondition, searchCondition, searchParam, PAGE_SIZE, offset);
+        const ringkasan = await laporanModel.getRingkasan(dateConditionSql, dateParams);
+        const totalTiketTerjual = await laporanModel.getTotalTiketTerjual(dateConditionSql, dateParams);
+        const totalTransaksi = await laporanModel.countTransaksi(dateConditionSql, dateParams, searchCondition, searchParam);
+        const transaksi = await laporanModel.getTransaksiTerbaru(dateConditionSql, dateParams, searchCondition, searchParam, PAGE_SIZE, offset);
 
         res.status(200).json({
             pendapatan: ringkasan.pendapatan,
@@ -82,16 +114,17 @@ export async function getLaporan(req, res) {
 
 export async function getLaporanExport(req, res) {
     try {
-        const { period, search } = req.query;
+        const { period, search, year } = req.query;
 
         if (!PERIOD_VALID.includes(period)) {
             return res.status(400).json({ message: 'Periode tidak valid' });
         }
 
-        const dateCondition = buildDateCondition(period);
+        const tahun = resolveTahun(year);
+        const { sql: dateConditionSql, params: dateParams } = buildDateCondition(period, tahun);
         const { searchCondition, searchParam } = buildSearchCondition(search);
 
-        const transaksi = await laporanModel.getAllTransaksi(dateCondition, searchCondition, searchParam);
+        const transaksi = await laporanModel.getAllTransaksi(dateConditionSql, dateParams, searchCondition, searchParam);
 
         res.status(200).json({ transaksi });
     } catch (error) {
@@ -102,19 +135,34 @@ export async function getLaporanExport(req, res) {
 
 export async function getStatistik(req, res) {
     try {
-        const { period } = req.query;
+        const { period, year } = req.query;
 
         if (!PERIOD_VALID.includes(period)) {
             return res.status(400).json({ message: 'Periode tidak valid' });
         }
 
-        const { dateCondition: trendCondition, groupByMonth } = buildTrendCondition(period);
-        const tiketDateCondition = buildDateCondition(period);
+        const tahun = resolveTahun(year);
+        const { sql: trendSql, params: trendParams, groupByMonth } = buildTrendCondition(period, tahun);
+        const { sql: tiketSql, params: tiketParams } = buildDateCondition(period, tahun);
 
-        const tren = await laporanModel.getTrenPendapatan(trendCondition, groupByMonth);
-        const tiketTerlaris = await laporanModel.getTiketTerlaris(tiketDateCondition, 5);
+        const tren = await laporanModel.getTrenPendapatan(trendSql, trendParams, groupByMonth);
+        const tiketTerlaris = await laporanModel.getTiketTerlaris(tiketSql, tiketParams, 5);
 
         res.status(200).json({ tren, tiketTerlaris });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    }
+}
+
+export async function getTahunTersedia(req, res) {
+    try {
+        const tahun = await laporanModel.getAvailableYears();
+        const currentYear = new Date().getFullYear();
+        if (!tahun.includes(currentYear)) {
+            tahun.unshift(currentYear);
+        }
+        res.status(200).json({ tahun });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Terjadi kesalahan pada server' });

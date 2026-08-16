@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import { formatRupiah } from '../../utils/currency'
 
 const CHART_WIDTH = 700
@@ -7,17 +8,13 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Se
 
 function formatLabel(label) {
   if (label.length === 10) {
-    // format YYYY-MM-DD -> DD/MM
     const [, month, day] = label.split('-')
     return `${day}/${month}`
   }
-  // format YYYY-MM -> nama bulan singkat + 2 digit tahun
   const [year, month] = label.split('-')
   return `${MONTH_NAMES[Number(month) - 1]} '${year.slice(2)}`
 }
 
-// Format angka besar jadi singkatan (144000 -> "144rb", 2500000 -> "2,5jt")
-// khusus untuk label sumbu-Y, supaya tidak makan tempat.
 function formatCompact(value) {
   if (value >= 1_000_000) {
     const jt = value / 1_000_000
@@ -29,8 +26,6 @@ function formatCompact(value) {
   return `${value}`
 }
 
-// Bulatkan nilai maksimum ke angka "rapi" terdekat (100, 200, 500, 1000, dst)
-// supaya garis bantu sumbu-Y enak dibaca, bukan angka aneh seperti "Rp144.300"
 function roundUpNice(value) {
   if (value <= 0) return 100
   const magnitude = Math.pow(10, Math.floor(Math.log10(value)))
@@ -43,6 +38,9 @@ function roundUpNice(value) {
 }
 
 export default function RevenueTrendChart({ data }) {
+  const svgRef = useRef(null)
+  const [hoveredIndex, setHoveredIndex] = useState(null)
+
   if (!data || data.length === 0) {
     return <p className="py-10 text-center text-sm text-slate-400">Belum ada data untuk periode ini</p>
   }
@@ -63,45 +61,95 @@ export default function RevenueTrendChart({ data }) {
   }))
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
-
-  // Kalau titik datanya banyak (misal 30 hari), jangan tampilkan semua label
-  // sumbu-X sekaligus - bisa numpuk dan tidak terbaca. Tampilkan setiap N titik saja.
   const labelStep = Math.max(1, Math.ceil(data.length / 8))
 
+  function handleMouseMove(e) {
+    if (!svgRef.current) return
+    const rect = svgRef.current.getBoundingClientRect()
+    const scaleX = CHART_WIDTH / rect.width
+    const mouseX = (e.clientX - rect.left) * scaleX
+
+    let nearestIndex = 0
+    let minDist = Infinity
+    points.forEach((p, i) => {
+      const dist = Math.abs(p.x - mouseX)
+      if (dist < minDist) {
+        minDist = dist
+        nearestIndex = i
+      }
+    })
+    setHoveredIndex(nearestIndex)
+  }
+
+  const hovered = hoveredIndex !== null ? points[hoveredIndex] : null
+  const tooltipXPercent = hovered ? (hovered.x / CHART_WIDTH) * 100 : 0
+  const tooltipYPercent = hovered ? (hovered.y / CHART_HEIGHT) * 100 : 0
+  // Kalau titiknya terlalu dekat ke tepi kiri/kanan, geser tooltip supaya
+  // tidak terpotong keluar dari area chart
+  const tooltipAlign = tooltipXPercent < 15 ? 'left' : tooltipXPercent > 85 ? 'right' : 'center'
+
   return (
-    <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="w-full">
-      {gridValues.map((val) => {
-        const y = PADDING.top + innerHeight - (val / niceMax) * innerHeight
-        return (
-          <g key={val}>
-            <line
-              x1={PADDING.left}
-              y1={y}
-              x2={CHART_WIDTH - PADDING.right}
-              y2={y}
-              stroke="#e2e8f0"
-              strokeWidth="1"
+    <div className="relative">
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+        className="w-full"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setHoveredIndex(null)}
+      >
+        {gridValues.map((val) => {
+          const y = PADDING.top + innerHeight - (val / niceMax) * innerHeight
+          return (
+            <g key={val}>
+              <line x1={PADDING.left} y1={y} x2={CHART_WIDTH - PADDING.right} y2={y} stroke="#e2e8f0" strokeWidth="1" />
+              <text x={PADDING.left - 8} y={y + 3} textAnchor="end" fontSize="10" fill="#94a3b8">
+                {formatCompact(val)}
+              </text>
+            </g>
+          )
+        })}
+        
+        <path d={linePath} fill="none" stroke="#155fdc" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+
+        {points.map((p, i) => (
+          <g key={p.label}>
+            {hoveredIndex === i && <circle cx={p.x} cy={p.y} r="7" fill="#155fdc" fillOpacity="0.15" />}
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r={hoveredIndex === i ? '4.5' : '3.5'}
+              fill="#155fdc"
+              stroke="white"
+              strokeWidth="1.5"
+              className="transition-all"
             />
-            <text x={PADDING.left - 8} y={y + 3} textAnchor="end" fontSize="10" fill="#94a3b8">
-              {formatCompact(val)}
-            </text>
+            {i % labelStep === 0 && (
+              <text x={p.x} y={CHART_HEIGHT - 8} textAnchor="middle" fontSize="10" fill="#94a3b8">
+                {formatLabel(p.label)}
+              </text>
+            )}
           </g>
-        )
-      })}
+        ))}
+      </svg>
 
-      <path d={linePath} fill="none" stroke="#155fdc" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-
-      {points.map((p, i) => (
-        <g key={p.label}>
-          <circle cx={p.x} cy={p.y} r="3.5" fill="#155fdc" stroke="white" strokeWidth="1.5" />
-          <title>{formatLabel(p.label)}: {formatRupiah(p.pendapatan)}</title>
-          {i % labelStep === 0 && (
-            <text x={p.x} y={CHART_HEIGHT - 8} textAnchor="middle" fontSize="10" fill="#94a3b8">
-              {formatLabel(p.label)}
-            </text>
-          )}
-        </g>
-      ))}
-    </svg>
+      {hovered && (
+        <div
+          className={`pointer-events-none absolute z-10 -translate-y-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs shadow-lg ${
+            tooltipAlign === 'left' ? 'translate-x-0' : tooltipAlign === 'right' ? '-translate-x-full' : '-translate-x-1/2'
+          }`}
+          style={{
+            left: tooltipAlign === 'left' ? `${tooltipXPercent}%` : tooltipAlign === 'right' ? `${tooltipXPercent}%` : `${tooltipXPercent}%`,
+            top: `${tooltipYPercent}%`,
+            marginTop: '-10px',
+          }}
+        >
+          <p className="font-medium text-slate-400">{formatLabel(hovered.label)}</p>
+          <p className="mt-0.5 flex items-center gap-1.5 font-bold text-primary-700">
+            <span className="h-2 w-2 rounded-full bg-primary-600" />
+            {formatRupiah(hovered.pendapatan)}
+          </p>
+        </div>
+      )}
+    </div>
   )
 }
