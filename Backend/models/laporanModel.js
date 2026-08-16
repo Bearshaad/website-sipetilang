@@ -11,50 +11,6 @@ export async function getRingkasan(dateCondition) {
     return rows[0];
 }
 
-export async function getTransaksiTerbaru(dateCondition) {
-    const [rows] = await db.execute(`
-        SELECT
-            t.id_transaksi,
-            t.tanggal_transaksi,
-            t.subtotal_transaksi,
-            t.tax_transaksi,
-            t.total_transaksi,
-            t.status_transaksi,
-            jt.nama_tiket,
-            dt.qty,
-            dt.harga_tiket,
-            dt.subtotal_item
-        FROM detail_transaksi dt
-        JOIN transaksi t ON dt.id_transaksi = t.id_transaksi
-        JOIN jenisTiket jt ON dt.id_tiket = jt.id_tiket
-        WHERE t.status_transaksi IN ('Selesai', 'Dibatalkan') ${dateCondition}
-        ORDER BY t.tanggal_transaksi DESC
-    `);
-
-    const map = new Map();
-    for (const row of rows) {
-        if (!map.has(row.id_transaksi)) {
-            map.set(row.id_transaksi, {
-                id_transaksi: row.id_transaksi,
-                tanggal_transaksi: row.tanggal_transaksi,
-                subtotal_transaksi: row.subtotal_transaksi,
-                tax_transaksi: row.tax_transaksi,
-                total_transaksi: row.total_transaksi,
-                status_transaksi: row.status_transaksi,
-                items: [],
-            });
-        }
-        map.get(row.id_transaksi).items.push({
-            nama_tiket: row.nama_tiket,
-            qty: row.qty,
-            harga_tiket: row.harga_tiket,
-            subtotal_item: row.subtotal_item,
-        });
-    }
-
-    return Array.from(map.values());
-}
-
 export async function getTotalTiketTerjual(dateCondition) {
     const [rows] = await db.execute(`
         SELECT COALESCE(SUM(dt.qty), 0) as totalTiketTerjual
@@ -63,4 +19,111 @@ export async function getTotalTiketTerjual(dateCondition) {
         WHERE t.status_transaksi = 'Selesai' ${dateCondition}
     `);
     return rows[0].totalTiketTerjual;
+}
+
+export async function countTransaksi(dateCondition, searchCondition, searchParam) {
+    const params = searchParam ? [searchParam] : [];
+    const [rows] = await db.execute(`
+        SELECT COUNT(*) as total
+        FROM transaksi t
+        WHERE t.status_transaksi IN ('Selesai', 'Dibatalkan') ${dateCondition} ${searchCondition}
+    `, params);
+    return rows[0].total;
+}
+
+// Ambil detail item untuk sekumpulan id_transaksi, lalu kelompokkan per transaksi.
+// Dipakai bersama oleh versi paginated (getTransaksiTerbaru) & versi lengkap untuk
+// export (getAllTransaksi), supaya logic pengelompokan item tidak ditulis dua kali.
+async function attachItems(transaksiRows) {
+    if (transaksiRows.length === 0) return [];
+
+    const ids = transaksiRows.map((row) => row.id_transaksi);
+    const placeholders = ids.map(() => '?').join(',');
+
+    const [itemRows] = await db.execute(`
+        SELECT dt.id_transaksi, jt.nama_tiket, dt.qty, dt.harga_tiket, dt.subtotal_item
+        FROM detail_transaksi dt
+        JOIN jenisTiket jt ON dt.id_tiket = jt.id_tiket
+        WHERE dt.id_transaksi IN (${placeholders})
+    `, ids);
+
+    const itemsByTransaksi = new Map();
+    for (const row of itemRows) {
+        if (!itemsByTransaksi.has(row.id_transaksi)) {
+            itemsByTransaksi.set(row.id_transaksi, []);
+        }
+        itemsByTransaksi.get(row.id_transaksi).push({
+            nama_tiket: row.nama_tiket,
+            qty: row.qty,
+            harga_tiket: row.harga_tiket,
+            subtotal_item: row.subtotal_item,
+        });
+    }
+
+    return transaksiRows.map((t) => ({
+        id_transaksi: t.id_transaksi,
+        tanggal_transaksi: t.tanggal_transaksi,
+        subtotal_transaksi: t.subtotal_transaksi,
+        tax_transaksi: t.tax_transaksi,
+        total_transaksi: t.total_transaksi,
+        status_transaksi: t.status_transaksi,
+        items: itemsByTransaksi.get(t.id_transaksi) || [],
+    }));
+}
+
+// Versi PAGINATED - dipakai untuk tampilan tabel (LIMIT/OFFSET per halaman)
+export async function getTransaksiTerbaru(dateCondition, searchCondition, searchParam, limit, offset) {
+    const safeLimit = Number.isInteger(limit) ? limit : 5;
+    const safeOffset = Number.isInteger(offset) && offset >= 0 ? offset : 0;
+
+    const params = searchParam ? [searchParam] : [];
+    const [transaksiRows] = await db.execute(`
+        SELECT t.id_transaksi, t.tanggal_transaksi, t.subtotal_transaksi, t.tax_transaksi, t.total_transaksi, t.status_transaksi
+        FROM transaksi t
+        WHERE t.status_transaksi IN ('Selesai', 'Dibatalkan') ${dateCondition} ${searchCondition}
+        ORDER BY t.tanggal_transaksi DESC
+        LIMIT ${safeLimit} OFFSET ${safeOffset}
+    `, params);
+
+    return attachItems(transaksiRows);
+}
+// Versi LENGKAP (tanpa LIMIT) - khusus dipakai untuk export Excel
+export async function getAllTransaksi(dateCondition, searchCondition, searchParam) {
+    const params = searchParam ? [searchParam] : [];
+    const [transaksiRows] = await db.execute(`
+        SELECT t.id_transaksi, t.tanggal_transaksi, t.subtotal_transaksi, t.tax_transaksi, t.total_transaksi, t.status_transaksi
+        FROM transaksi t
+        WHERE t.status_transaksi IN ('Selesai', 'Dibatalkan') ${dateCondition} ${searchCondition}
+        ORDER BY t.tanggal_transaksi DESC
+    `, params);
+
+    return attachItems(transaksiRows);
+}
+
+export async function getTrenPendapatan(dateCondition, groupByMonth) {
+    const groupFormat = groupByMonth ? '%Y-%m' : '%Y-%m-%d';
+    const [rows] = await db.execute(`
+        SELECT DATE_FORMAT(t.tanggal_transaksi, '${groupFormat}') as label,
+               COALESCE(SUM(t.total_transaksi), 0) as pendapatan
+        FROM transaksi t
+        WHERE t.status_transaksi = 'Selesai' ${dateCondition}
+        GROUP BY label
+        ORDER BY label ASC
+    `);
+    return rows;
+}
+
+export async function getTiketTerlaris(dateCondition, limit) {
+    const safeLimit = Number.isInteger(limit) && limit > 0 ? limit : 5;
+    const [rows] = await db.execute(`
+        SELECT jt.nama_tiket, SUM(dt.qty) as totalTerjual
+        FROM detail_transaksi dt
+        JOIN transaksi t ON dt.id_transaksi = t.id_transaksi
+        JOIN jenisTiket jt ON dt.id_tiket = jt.id_tiket
+        WHERE t.status_transaksi = 'Selesai' ${dateCondition}
+        GROUP BY jt.id_tiket, jt.nama_tiket
+        ORDER BY totalTerjual DESC
+        LIMIT ${safeLimit}
+    `);
+    return rows;
 }

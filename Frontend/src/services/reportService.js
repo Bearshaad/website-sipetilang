@@ -20,15 +20,22 @@ function mapTransaksiFromApi(row) {
     }
 }
 
-export async function getSalesReport(period) {
-    const res = await apiClient.get('/laporan', { params: { period } })
+export async function getSalesReport(period, page = 1, search = '') {
+    const res = await apiClient.get('/laporan', { params: { period, page, search } })
     return {
         period,
         pendapatan: res.data.pendapatan,
         jumlahTransaksi: res.data.jumlahTransaksi,
         totalTiketTerjual: res.data.totalTiketTerjual,
         transaksi: res.data.transaksi.map(mapTransaksiFromApi),
+        currentPage: res.data.currentPage,
+        totalPages: res.data.totalPages,
     }
+}
+
+export async function getSalesReportExport(period, search = '') {
+    const res = await apiClient.get('/laporan/export', { params: { period, search } })
+    return res.data.transaksi.map(mapTransaksiFromApi)
 }
 
 const RUPIAH_FORMAT = '"Rp"#,##0'
@@ -97,4 +104,9 @@ export async function buildReportExcel(transaksiList, fileName) {
     link.download = fileName
     link.click()
     URL.revokeObjectURL(url)
+}
+
+export async function getStatistikPenjualan(period) {
+    const res = await apiClient.get('/laporan/statistik', { params: { period } })
+    return res.data
 }
