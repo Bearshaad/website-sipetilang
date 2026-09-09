@@ -1,10 +1,34 @@
 import crypto from 'crypto'
 import db from '../config/db.mjs'
+import coreApi from '../config/midtransClient.js'
 import * as transaksiModel from '../models/transaksiModel.js'
 
 const TAX_RATE = 0.11;
+const QRIS_EXPIRY_MINUTES = 30;
 
 class BusinessError extends Error {}
+
+// Dipakai bersama oleh alur Tunai (manual) dan QRIS (otomatis via polling),
+// supaya logika "tandai selesai + buat invoice + buat QR tiket" cuma ada di 1 tempat.
+async function finalizeSelesai(connection, id) {
+    const affectedRows = await transaksiModel.updateStatus(connection, id, 'Selesai');
+    if (affectedRows === 0) return null;
+
+    const transaksi = await transaksiModel.getByIdForUpdate(connection, id);
+    const totalQty = await transaksiModel.sumQtyByTransaksiId(connection, id);
+
+    const kodeQr = crypto.randomUUID();
+    const idQrBaru = await transaksiModel.createQr(connection, kodeQr);
+
+    const idInvoiceBaru = await transaksiModel.createInvoice(connection, {
+        id_transaksi: id,
+        id_qr: idQrBaru,
+        qty_invoice: totalQty,
+        invoice_subtotal: transaksi.subtotal_transaksi,
+    });
+
+    return { id_invoice: idInvoiceBaru, kode_qr: kodeQr, tanggal_transaksi: transaksi.tanggal_transaksi };
+}
 
 export async function createTransaksi(req, res) {
     const id_petugas = req.user.id;
@@ -75,7 +99,6 @@ export async function createTransaksi(req, res) {
             status_transaksi: 'Pending',
             items: itemsWithHarga,
         });
-        
     } catch (error) {
         await connection.rollback();
         if (error instanceof BusinessError) {
@@ -127,8 +150,6 @@ export async function updateStatusTransaksi(req, res) {
             return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
         }
 
-        // Kasus konfirmasi 'Selesai' yang diulang (idempotent) - kembalikan invoice yang sudah ada,
-        // bukan error, karena ini kemungkinan besar cuma double-klik dari user.
         if (status_transaksi === 'Selesai' && transaksiSaatIni.status_transaksi === 'Selesai') {
             const invoiceLama = await transaksiModel.findInvoiceByTransaksiId(connection, id);
             await connection.commit();
@@ -144,7 +165,6 @@ export async function updateStatusTransaksi(req, res) {
             });
         }
 
-        // Status final (Selesai / Dibatalkan) tidak boleh diubah lagi ke status APAPUN.
         if (STATUS_FINAL.includes(transaksiSaatIni.status_transaksi)) {
             await connection.rollback();
             return res.status(409).json({
@@ -152,37 +172,131 @@ export async function updateStatusTransaksi(req, res) {
             });
         }
 
-        const affectedRows = await transaksiModel.updateStatus(connection, id, status_transaksi);
-
-        if (affectedRows === 0) {
-            await connection.rollback();
-            return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
-        }
-
         let invoiceData = null;
 
         if (status_transaksi === 'Selesai') {
-            const transaksi = await transaksiModel.getByIdForUpdate(connection, id);
-            const totalQty = await transaksiModel.sumQtyByTransaksiId(connection, id);
-
-            const kodeQr = crypto.randomUUID();
-            const idQrBaru = await transaksiModel.createQr(connection, kodeQr);
-
-            const idInvoiceBaru = await transaksiModel.createInvoice(connection, {
-                id_transaksi: id,
-                id_qr: idQrBaru,
-                qty_invoice: totalQty,
-                invoice_subtotal: transaksi.subtotal_transaksi,
-            });
-
-            invoiceData = { id_invoice: idInvoiceBaru, kode_qr: kodeQr, tanggal_transaksi: transaksi.tanggal_transaksi };
+            invoiceData = await finalizeSelesai(connection, id);
+        } else {
+            await transaksiModel.updateStatus(connection, id, status_transaksi);
         }
 
         await connection.commit();
         res.status(200).json({ message: 'Status transaksi berhasil diperbarui', invoice: invoiceData });
     } catch (error) {
         await connection.rollback();
+        console.error(error);
         res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    } finally {
+        connection.release();
+    }
+}
+
+export async function createQrisPayment(req, res) {
+    const { id } = req.params;
+
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const transaksi = await transaksiModel.getByIdForUpdate(connection, id);
+
+        if (!transaksi) {
+            await connection.rollback();
+            return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
+        }
+        if (transaksi.status_transaksi !== 'Pending') {
+            await connection.rollback();
+            return res.status(409).json({ message: `Transaksi ini sudah berstatus '${transaksi.status_transaksi}'` });
+        }
+
+        const orderId = `SIPETILANG-${id}-${Date.now()}`;
+        const grossAmount = Math.round(Number(transaksi.total_transaksi));
+
+        const chargeResponse = await coreApi.charge({
+            payment_type: 'qris',
+            transaction_details: {
+                order_id: orderId,
+                gross_amount: grossAmount,
+            },
+        });
+
+        console.log(chargeResponse);
+
+        const expiredAt = new Date(Date.now() + QRIS_EXPIRY_MINUTES * 60 * 1000);
+        await transaksiModel.saveQrisOrder(connection, id, orderId, expiredAt);
+
+        await connection.commit();
+
+        res.status(200).json({
+            qr_string: chargeResponse.qr_string,
+            order_id: orderId,
+            expired_at: expiredAt,
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error(error);
+        res.status(500).json({ message: 'Gagal membuat pembayaran QRIS' });
+    } finally {
+        connection.release();
+    }
+}
+
+export async function checkQrisStatus(req, res) {
+    const { id } = req.params;
+
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const transaksi = await transaksiModel.getByIdForUpdate(connection, id);
+
+        if (!transaksi) {
+            await connection.rollback();
+            return res.status(404).json({ message: 'Transaksi tidak ditemukan' });
+        }
+
+        if (transaksi.status_transaksi === 'Selesai') {
+            const invoice = await transaksiModel.findInvoiceByTransaksiId(connection, id);
+            await connection.commit();
+            return res.status(200).json({
+                status: 'settlement',
+                invoice: invoice
+                    ? { id_invoice: invoice.id_invoice, kode_qr: invoice.kode_qr, tanggal_transaksi: invoice.tanggal_transaksi }
+                    : null,
+            });
+        }
+
+        if (!transaksi.qris_order_id) {
+            await connection.rollback();
+            return res.status(400).json({ message: 'Transaksi ini belum menggunakan metode QRIS' });
+        }
+
+        if (transaksi.qris_expired_at && new Date(transaksi.qris_expired_at) < new Date()) {
+            await transaksiModel.updateStatus(connection, id, 'Dibatalkan');
+            await connection.commit();
+            return res.status(200).json({ status: 'expired' });
+        }
+
+        const statusResponse = await coreApi.transaction.status(transaksi.qris_order_id);
+
+        if (statusResponse.transaction_status === 'settlement' || statusResponse.transaction_status === 'capture') {
+            const invoiceData = await finalizeSelesai(connection, id);
+            await connection.commit();
+            return res.status(200).json({ status: 'settlement', invoice: invoiceData });
+        }
+
+        if (['deny', 'cancel', 'expire', 'failure'].includes(statusResponse.transaction_status)) {
+            await transaksiModel.updateStatus(connection, id, 'Dibatalkan');
+            await connection.commit();
+            return res.status(200).json({ status: statusResponse.transaction_status });
+        }
+
+        await connection.rollback();
+        res.status(200).json({ status: 'pending' });
+    } catch (error) {
+        await connection.rollback();
+        console.error(error);
+        res.status(500).json({ message: 'Gagal mengecek status pembayaran' });
     } finally {
         connection.release();
     }

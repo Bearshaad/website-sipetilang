@@ -2,21 +2,19 @@ import { createContext, useContext, useMemo, useState } from 'react'
 import apiClient from '../services/apiClient'
 
 const TransactionContext = createContext(null)
-
-// mengatur pajak
 const TAX_RATE = 0.11
 
 export function TransactionProvider({ children }) {
     const [browsedTicketIds, setBrowsedTicketIds] = useState([])
-
-    // Item di "Transaksi Baru":
     const [cart, setCart] = useState([])
-    const [status, setStatus] = useState('building') // 'building' | 'success'
+    const [status, setStatus] = useState('building')
     const [transactionId, setTransactionId] = useState(null)
     const [paidAmount, setPaidAmount] = useState(0)
     const [invoiceData, setInvoiceData] = useState(null)
+    const [metodePembayaran, setMetodePembayaran] = useState('Tunai')
+    const [qrisData, setQrisData] = useState(null)
+    const [qrisStatus, setQrisStatus] = useState('idle')
 
-   //perhitungan transaksi di backend
     const [confirmedSubtotal, setConfirmedSubtotal] = useState(0)
     const [confirmedPajak, setConfirmedPajak] = useState(0)
     const [confirmedTotal, setConfirmedTotal] = useState(0)
@@ -47,7 +45,6 @@ export function TransactionProvider({ children }) {
         )
     }
 
-    // tombol bersihkan pada bagian preview transaksi
     function clearTransaction() {
         setCart([])
         setStatus('building')
@@ -57,9 +54,11 @@ export function TransactionProvider({ children }) {
         setConfirmedSubtotal(0)
         setConfirmedPajak(0)
         setConfirmedTotal(0)
+        setMetodePembayaran('Tunai')
+        setQrisData(null)
+        setQrisStatus('idle')
     }
 
-   // preview perhitungan dari frontend
     const subtotal = useMemo(
         () => cart.reduce((sum, item) => sum + item.ticket.harga * item.jumlah, 0),
         [cart]
@@ -69,32 +68,54 @@ export function TransactionProvider({ children }) {
 
     const change = Math.max(0, paidAmount - confirmedTotal)
 
-async function createTransaction() {
-    const items = cart.map((item) => ({
-        id_tiket: item.ticket.id,
-        qty: item.jumlah,
-    }))
+    async function createTransaction() {
+        const items = cart.map((item) => ({
+            id_tiket: item.ticket.id,
+            qty: item.jumlah,
+        }))
 
-    const res = await apiClient.post('/transaksi', { items })
-    const data = res.data
+        const res = await apiClient.post('/transaksi', { items })
+        const data = res.data
 
-    setTransactionId(data.id_transaksi)
-    setConfirmedSubtotal(data.subtotal_transaksi)
-    setConfirmedPajak(data.tax_transaksi)
-    setConfirmedTotal(data.total_transaksi)
+        setTransactionId(data.id_transaksi)
+        setConfirmedSubtotal(data.subtotal_transaksi)
+        setConfirmedPajak(data.tax_transaksi)
+        setConfirmedTotal(data.total_transaksi)
 
-    return data.id_transaksi
-}
+        return data.id_transaksi
+    }
 
-async function confirmPayment(amount) {
-    const res = await apiClient.put(`/transaksi/${transactionId}/status`, {
-        status_transaksi: 'Selesai',
-    })
+    async function confirmPayment(amount) {
+        const res = await apiClient.put(`/transaksi/${transactionId}/status`, {
+            status_transaksi: 'Selesai',
+        })
 
-    setPaidAmount(amount)
-    setStatus('success')
-    setInvoiceData(res.data.invoice)
-}
+        setPaidAmount(amount)
+        setStatus('success')
+        setInvoiceData(res.data.invoice)
+    }
+
+    async function createQrisPayment() {
+        const res = await apiClient.post(`/transaksi/${transactionId}/qris`)
+        setQrisData(res.data)
+        setQrisStatus('pending')
+        return res.data
+    }
+
+    async function checkQrisStatus() {
+        const res = await apiClient.get(`/transaksi/${transactionId}/qris/status`)
+        const { status: newStatus, invoice } = res.data
+
+        setQrisStatus(newStatus)
+
+        if (newStatus === 'settlement') {
+            setPaidAmount(confirmedTotal)
+            setStatus('success')
+            setInvoiceData(invoice)
+        }
+
+        return newStatus
+    }
 
     const value = {
         browsedTicketIds,
@@ -103,10 +124,13 @@ async function confirmPayment(amount) {
         transactionId,
         paidAmount,
         invoiceData,
-        subtotal,           // preview
-        pajak,              // preview
-        total,              // preview
-        confirmedSubtotal,  // confirmed - validasi di bakend
+        metodePembayaran,
+        qrisData,
+        qrisStatus,
+        subtotal,
+        pajak,
+        total,
+        confirmedSubtotal,
         confirmedPajak,
         confirmedTotal,
         change,
@@ -117,6 +141,9 @@ async function confirmPayment(amount) {
         clearTransaction,
         createTransaction,
         confirmPayment,
+        setMetodePembayaran,
+        createQrisPayment,
+        checkQrisStatus,
     }
 
     return (

@@ -94,3 +94,10 @@ export async function findInvoiceByTransaksiId(connection, id_transaksi) {
     );
     return rows[0];
 }
+
+export async function saveQrisOrder(connection, id_transaksi, orderId, expiredAt) {
+    await connection.execute(
+        `UPDATE transaksi SET metode_pembayaran = 'QRIS', qris_order_id = ?, qris_expired_at = ? WHERE id_transaksi = ?`,
+        [orderId, expiredAt, id_transaksi]
+    );
+}

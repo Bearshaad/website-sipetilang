@@ -12,6 +12,7 @@ export default function Receipt() {
         paidAmount,
         change,
         invoiceData,
+        metodePembayaran,
     } = useTransaction()
 
     console.log("Invoice Data: ", invoiceData)
@@ -73,7 +74,11 @@ export default function Receipt() {
                 <span>{formatRupiah(confirmedTotal)}</span>
             </div>
             <div className="flex justify-between">
-                <span>Tunai</span>
+                <span>Metode Bayar</span>
+                <span>{metodePembayaran}</span>
+            </div>
+            <div className="flex justify-between">
+                <span>{metodePembayaran === 'QRIS' ? 'Dibayar' : 'Tunai'}</span>
                 <span>{formatRupiah(paidAmount)}</span>
             </div>
             <div className="flex justify-between">

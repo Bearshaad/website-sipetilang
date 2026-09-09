@@ -31,7 +31,7 @@ password_petugas VARCHAR(60),
 email_petugas VARCHAR(50) UNIQUE,
 no_hp_petugas CHAR(13),
 status_petugas ENUM('Aktif','Resign') DEFAULT 'Aktif',
-status_online BOOLEAN DEFAULT FALSE
+status_online BOOLEAN DEFAULT FALSE,
 last_active TIMESTAMP NULL DEFAULT NULL
 );
 
@@ -59,6 +59,9 @@ subtotal_transaksi DECIMAL(12,2),
 tax_transaksi DECIMAL(12,2),
 total_transaksi DECIMAL(12,2),
 status_transaksi ENUM('Pending','Selesai','Dibatalkan') DEFAULT 'Pending',
+metode_pembayaran ENUM('Tunai','QRIS') DEFAULT 'Tunai',
+qris_order_id VARCHAR(100) NULL,
+qris_expired_at TIMESTAMP NULL DEFAULT NULL,
 
 FOREIGN KEY(id_petugas) REFERENCES petugasLoket(id_petugas)
 );
